@@ -1,10 +1,11 @@
 require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
+const data = require("./affirmations.json");
 
 const telegramToken = process.env.TELEGRAM_API_TOKEN;
 const djangoApiToken = process.env.DJANGO_API_TOKEN;
 
-const data = require("./affirmations.json");
+
 
 function returnAffirmation() {
   let affirmation =
