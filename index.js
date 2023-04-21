@@ -80,41 +80,73 @@ console.log("Starting bot.");
 
 const bot = new TelegramBot(telegramToken, { polling: true });
 
-bot.onText(/\/start/, function onStart(msg) {
-  addToDB(msg.chat.id, djangoApiToken)
-    .then(() => {
-      bot.sendMessage(
-        msg.chat.id,
-        "Thank you for subscribing! You will now be notified whenever Scuzzy opens for commissions. I suggest setting a special notification sound for this chat/bot!"
-      );
+bot.onText(/^\/start$/, function onStart(msg) {
+  readAllFromDB(djangoApiToken)
+    .then((chatIds) => {
+      if (msg.chat.id in chatIds) {
+        bot.sendMessage(msg.chat.id, "You are already subscribed!");
+        return;
+      } else {
+        addToDB(msg.chat.id, djangoApiToken)
+          .then(() => {
+            bot.sendMessage(
+              msg.chat.id,
+              "Thank you for subscribing! You will now be notified whenever Scuzzy opens for commissions. I suggest setting a special notification sound for this chat/bot!"
+            );
+          })
+          .catch((err) => {
+            console.log(err);
+            bot.sendMessage(
+              msg.chat.id,
+              "Sorry, something went wrong in trying to subscribe you. Please try again in a bit or contact @scuzzyfox for help."
+            );
+          });
+      }
     })
     .catch((err) => {
       console.log(err);
       bot.sendMessage(
         msg.chat.id,
-        "Sorry, something went wrong in trying to subscribe you. Please try again in a bit or contact @scuzzyfox for help."
+        "Sorry, something went wrong in checking the database. Please try again in a bit or contact @scuzzyfox for help."
       );
     });
 });
 
-bot.onText(/\/unsubscribe/, function onUnsubscribe(msg) {
-  removeFromDB(msg.chat.id, djangoApiToken)
-    .then(() => {
-      bot.sendMessage(
-        msg.chat.id,
-        "You have been unsubscribed from notifications. If you'd like to subscribe again, please message /start."
-      );
+bot.onText(/^\/unsubscribe$/, function onUnsubscribe(msg) {
+  readAllFromDB(djangoApiToken)
+    .then((chatIds) => {
+      if (msg.chat.id in chatIds) {
+        removeFromDB(msg.chat.id, djangoApiToken)
+          .then(() => {
+            bot.sendMessage(
+              msg.chat.id,
+              "You have been unsubscribed from notifications. If you'd like to subscribe again, please message /start."
+            );
+          })
+          .catch((err) => {
+            console.log(err);
+            bot.sendMessage(
+              msg.chat.id,
+              "Sorry, something went wrong in trying to unsubscribe you. Please try again in a bit or contact @scuzzyfox for help."
+            );
+          });
+      } else {
+        bot.sendMessage(
+          msg.chat.id,
+          "You are not subscribed! Please message /start to subscribe."
+        );
+      }
     })
     .catch((err) => {
       console.log(err);
       bot.sendMessage(
         msg.chat.id,
-        "Sorry, something went wrong in trying to unsubscribe you. Please try again in a bit or contact @scuzzyfox for help."
+        "Sorry, something went wrong in checking the database. Please try again in a bit or contact @scuzzyfox for help."
       );
     });
 });
 
-bot.onText(/\/help/, (msg) => {
+bot.onText(/^\/help$/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
     "To subscribe, please message /start.\nTo unsubscribe, please message /unsubscribe."
@@ -122,9 +154,20 @@ bot.onText(/\/help/, (msg) => {
 });
 
 bot.on("message", (msg) => {
-  // if message matches pattern of /word then return
-  if (msg.text.match(/\/[a-zA-Z0-9]+/)) return;
+  //console log the username and message:
+  console.log(msg.from.username, msg.text);
 
+  if (msg.text.match(/^\/(start|unsubscribe|help)$/)) {
+    return;
+  }
+
+  if (msg.text.match(/^\/[a-zA-Z0-9]+/)) {
+    bot.sendMessage(
+      msg.chat.id,
+      "I don't know that command. Please message /help for a list of commands."
+    );
+    return;
+  }
   bot.sendMessage(msg.chat.id, returnAffirmation());
 });
 
