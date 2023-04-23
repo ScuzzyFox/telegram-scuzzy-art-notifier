@@ -5,8 +5,6 @@ const data = require("./affirmations.json");
 const telegramToken = process.env.TELEGRAM_API_TOKEN;
 const djangoApiToken = process.env.DJANGO_API_TOKEN;
 
-
-
 function returnAffirmation() {
   let affirmation =
     data.affirmations[Math.floor(Math.random() * data.affirmations.length)];
@@ -16,7 +14,7 @@ function returnAffirmation() {
 async function addToDB(id, token) {
   let url = "https://api.scuzzyfox.com/telegram/";
 
-  let tokenKeyword = "";
+  let tokenKeyword = "Poken";
   let toSend = {
     chat_id: id,
   };
@@ -40,7 +38,7 @@ async function addToDB(id, token) {
 
 async function removeFromDB(id, token) {
   let url = "https://api.scuzzyfox.com/telegram/";
-  let tokenKeyword = "";
+  let tokenKeyword = "Poken";
   let toSend = {
     chat_id: id,
   };
@@ -61,7 +59,7 @@ async function removeFromDB(id, token) {
 async function readAllFromDB(token) {
   let url = "https://api.scuzzyfox.com/telegram/";
 
-  let tokenKeyword = "";
+  let tokenKeyword = "Poken";
   let response = await fetch(url, {
     method: "GET",
     headers: {
@@ -74,7 +72,9 @@ async function readAllFromDB(token) {
   }
 
   // the response should be an array of chat_ids
-  return await response.json();
+  let unprocessed = await response.json();
+  let chat_ids = unprocessed.map((chat) => chat.chat_id);
+  return chat_ids;
 }
 
 console.log("Starting bot.");
@@ -84,7 +84,7 @@ const bot = new TelegramBot(telegramToken, { polling: true });
 bot.onText(/^\/start$/, function onStart(msg) {
   readAllFromDB(djangoApiToken)
     .then((chatIds) => {
-      if (msg.chat.id in chatIds) {
+      if (chatIds.includes(msg.chat.id)) {
         bot.sendMessage(msg.chat.id, "You are already subscribed!");
         return;
       } else {
@@ -116,7 +116,7 @@ bot.onText(/^\/start$/, function onStart(msg) {
 bot.onText(/^\/unsubscribe$/, function onUnsubscribe(msg) {
   readAllFromDB(djangoApiToken)
     .then((chatIds) => {
-      if (msg.chat.id in chatIds) {
+      if (chatIds.includes(msg.chat.id)) {
         removeFromDB(msg.chat.id, djangoApiToken)
           .then(() => {
             bot.sendMessage(
